@@ -1,43 +1,33 @@
-USE parking_management;
+-- Insert municipalities
+INSERT INTO municipalities (name, postal_code) VALUES
+('Downtown', '10001'),
+('Uptown', '10002'),
+('Riverside', '10003');
 
-INSERT INTO COMMUNES (code_postal, nom_commune) VALUES
-('75001', 'Paris 1er'),
-('69001', 'Lyon 1er'),
-('13001', 'Marseille 1er'),
-('31000', 'Toulouse'),
-('33000', 'Bordeaux');
+-- Insert parkings
+INSERT INTO parkings (name, type, address, capacity, id_municipality) VALUES
+('Central Parking', 'Underground', '123 Main St', 200, 1),
+('Riverside Lot', 'Open-air', '45 River Rd', 120, 3),
+('Uptown Garage', 'Multilevel', '78 North Ave', 300, 2);
 
-INSERT INTO PARKINGS (nom, numero_type_adresse, capacite, id_commune) VALUES
-('Parking Centre Ville', '12 Rue de la République', 150, 1),
-('Parking Gare', '5 Avenue de la Gare', 200, 2),
-('Parking Commercial', '25 Boulevard du Commerce', 100, 3),
-('Parking Historique', '8 Place du Capitole', 80, 4),
-('Parking Riviera', '15 Quai des Chartrons', 120, 5);
+-- Insert places
+INSERT INTO places (id_parking) VALUES
+(1), (1), (2), (2), (3), (3);
 
-INSERT INTO TARIFICATIONS (id_parking, debut_validite, fin_validite, tarif_horaire) VALUES
-(1, '2024-01-01', '2024-12-31', 2.50),
-(2, '2024-01-01', '2024-12-31', 3.00),
-(3, '2024-01-01', '2024-12-31', 2.00),
-(4, '2024-01-01', '2024-12-31', 2.80),
-(5, '2024-01-01', '2024-12-31', 2.20);
+-- Insert tariffs
+INSERT INTO tariffs (id_parking, entry_time, exit_time, price) VALUES
+(1, '08:00', '18:00', 2.50),
+(2, '07:00', '19:00', 3.00),
+(3, '09:00', '17:00', 2.00);
 
-INSERT INTO PLACES (id_parking, numero_place) VALUES
-(1, 'A001'), (1, 'A002'), (1, 'A003'),
-(2, 'B001'), (2, 'B002'), (2, 'B003'),
-(3, 'C001'), (3, 'C002'), (3, 'C003'),
-(4, 'D001'), (4, 'D002'), (4, 'D003'),
-(5, 'E001'), (5, 'E002'), (5, 'E003');
+-- Insert vehicles
+INSERT INTO vehicles (license_plate, model, kilometers, vehicle_state, date_of_circulation) VALUES
+('ABC-123', 'Toyota Corolla', 45000, 'Good', '2020-05-15'),
+('XYZ-789', 'Ford Focus', 60000, 'Average', '2019-03-10'),
+('LMN-456', 'Tesla Model 3', 25000, 'Excellent', '2022-11-22');
 
-INSERT INTO VEHICULES (immatriculation, marque, date_mise_en_circulation, kilometrage, etat) VALUES
-('AB-123-CD', 'Renault', '2020-05-15', 45000, 'Bon'),
-('EF-456-GH', 'Peugeot', '2019-08-20', 62000, 'Très bon'),
-('IJ-789-KL', 'Citroën', '2021-01-10', 25000, 'Excellent'),
-('MN-012-OP', 'BMW', '2022-03-25', 15000, 'Neuf'),
-('QR-345-ST', 'Mercedes', '2018-11-30', 78000, 'Bon');
-
-INSERT INTO STATIONNEMENTS (id_place, id_vehicule, date_jour, heure_entree, heure_sortie) VALUES
-(1, 1, '2024-01-15', '08:30:00', '12:45:00'),
-(2, 2, '2024-01-15', '09:15:00', '11:30:00'),
-(3, 3, '2024-01-15', '10:00:00', '14:20:00'),
-(4, 4, '2024-01-16', '13:45:00', '16:30:00'),
-(5, 5, '2024-01-16', '15:20:00', '18:10:00');
+-- Insert parking sessions
+INSERT INTO parkings_sessions (id_place, id_vehicle, entry_datetime, exit_datetime) VALUES
+(1, 1, '2025-11-05 08:15:00', '2025-11-05 10:30:00'),
+(2, 2, '2025-11-05 09:00:00', '2025-11-05 12:45:00'),
+(3, 3, '2025-11-05 10:00:00', NULL);
