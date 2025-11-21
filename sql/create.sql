@@ -1,4 +1,4 @@
-CREATE TABLE parkings (
+CREATE OR REPLACE TABLE parkings (
     id_parking SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     type VARCHAR(50) NOT NULL,
@@ -7,12 +7,12 @@ CREATE TABLE parkings (
     FOREIGN KEY (id_parking) REFERENCES municipalities(id_municipality)
 );
 
-CREATE TABLE places (
+CREATE OR REPLACE TABLE places (
     id_place SERIAL PRIMARY KEY,
     FOREIGN KEY (id_place) REFERENCES parkings(id_parking)
 );
 
-CREATE TABLE tariffs (
+CREATE OR REPLACE TABLE tariffs (
     id_tariff SERIAL PRIMARY KEY,
     entry_time TIME NOT NULL,
     exit_time TIME NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE tariffs (
     FOREIGN KEY (id_tariff) REFERENCES parkings(id_parking)
 );
 
-CREATE TABLE vehicles (
+CREATE OR REPLACE TABLE vehicles (
     id_vehicle SERIAL PRIMARY KEY,
     license_plate VARCHAR(20) NOT NULL,
     model VARCHAR(50) NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE vehicles (
     date_of_circulation DATE NOT NULL
 );
 
-CREATE TABLE parkings_sessions (
+CREATE OR REPLACE TABLE parkings_sessions (
     id_parking_session SERIAL PRIMARY KEY,
     entry_datetime TIMESTAMP NOT NULL,
     exit_datetime TIMESTAMP NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE parkings_sessions (
     FOREIGN KEY (id_parking_session) REFERENCES vehicles(id_vehicle)
 );
 
-CREATE TABLE municipalities (
+CREATE OR REPLACE TABLE municipalities (
     id_municipality SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     postal_code VARCHAR(20) NOT NULL
