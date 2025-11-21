@@ -1,26 +1,33 @@
-CREATE OR REPLACE TABLE parkings (
+CREATE TABLE IF NOT EXISTS municipalities (
+    id_municipality SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    postal_code VARCHAR(20) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS parkings (
     id_parking SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     type VARCHAR(50) NOT NULL,
     address VARCHAR(255) NOT NULL,
     capacity INT NOT NULL,
-    FOREIGN KEY (id_parking) REFERENCES municipalities(id_municipality)
+    id_municipality INT NOT NULL REFERENCES municipalities(id_municipality)
 );
 
-CREATE OR REPLACE TABLE places (
+CREATE TABLE IF NOT EXISTS places (
     id_place SERIAL PRIMARY KEY,
-    FOREIGN KEY (id_place) REFERENCES parkings(id_parking)
+    parking_id INT NOT NULL REFERENCES parkings(id_parking),
+    place_number INT
 );
 
-CREATE OR REPLACE TABLE tariffs (
+CREATE TABLE IF NOT EXISTS tariffs (
     id_tariff SERIAL PRIMARY KEY,
+    parking_id INT NOT NULL REFERENCES parkings(id_parking),
     entry_time TIME NOT NULL,
     exit_time TIME NOT NULL,
-    price DECIMAL(10, 2) NOT NULL,
-    FOREIGN KEY (id_tariff) REFERENCES parkings(id_parking)
+    price DECIMAL(10,2) NOT NULL
 );
 
-CREATE OR REPLACE TABLE vehicles (
+CREATE TABLE IF NOT EXISTS vehicles (
     id_vehicle SERIAL PRIMARY KEY,
     license_plate VARCHAR(20) NOT NULL,
     model VARCHAR(50) NOT NULL,
@@ -29,16 +36,10 @@ CREATE OR REPLACE TABLE vehicles (
     date_of_circulation DATE NOT NULL
 );
 
-CREATE OR REPLACE TABLE parkings_sessions (
+CREATE TABLE IF NOT EXISTS parkings_sessions (
     id_parking_session SERIAL PRIMARY KEY,
+    place_id INT NOT NULL REFERENCES places(id_place),
+    vehicle_id INT NOT NULL REFERENCES vehicles(id_vehicle),
     entry_datetime TIMESTAMP NOT NULL,
-    exit_datetime TIMESTAMP NOT NULL,
-    FOREIGN KEY (id_parking_session) REFERENCES places(id_place),
-    FOREIGN KEY (id_parking_session) REFERENCES vehicles(id_vehicle)
-);
-
-CREATE OR REPLACE TABLE municipalities (
-    id_municipality SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    postal_code VARCHAR(20) NOT NULL
+    exit_datetime TIMESTAMP
 );
