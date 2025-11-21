@@ -14,17 +14,17 @@ CREATE TABLE IF NOT EXISTS parkings (
 );
 
 CREATE TABLE IF NOT EXISTS places (
-    id_place SERIAL PRIMARY KEY,
     id_parking INT NOT NULL REFERENCES parkings(id_parking),
-    place_number INT
+    id_place INT,
+    PRIMARY KEY (id_parking, id_place)
 );
 
-CREATE TABLE IF NOT EXISTS tariffs (
+CREATE TABLE IF NOT EXISTS fees (
     id_tariff SERIAL PRIMARY KEY,
     id_parking INT NOT NULL REFERENCES parkings(id_parking),
     entry_time TIME NOT NULL,
     exit_time TIME NOT NULL,
-    price DECIMAL(10,2) NOT NULL
+    price DECIMAL(10,2) NOT NULL --hourly price
 );
 
 CREATE TABLE IF NOT EXISTS vehicles (
@@ -38,8 +38,12 @@ CREATE TABLE IF NOT EXISTS vehicles (
 
 CREATE TABLE IF NOT EXISTS parkings_sessions (
     id_parking_session SERIAL PRIMARY KEY,
-    id_place INT NOT NULL REFERENCES places(id_place),
+    id_parking INT NOT NULL,
+    id_place INT NOT NULL,
+    CONSTRAINT fk_places FOREIGN KEY (id_parking, id_place) REFERENCES places(id_parking, id_place),
     id_vehicle INT NOT NULL REFERENCES vehicles(id_vehicle),
     entry_datetime TIMESTAMP NOT NULL,
     exit_datetime TIMESTAMP
 );
+
+

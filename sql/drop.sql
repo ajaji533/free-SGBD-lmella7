@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS parkings_sessions; 
-DROP TABLE IF EXISTS tariffs; 
+DROP TABLE IF EXISTS fees;
 DROP TABLE IF EXISTS places; 
 DROP TABLE IF EXISTS parkings; 
 DROP TABLE IF EXISTS vehicles; 
