@@ -1,6 +1,6 @@
 SELECT * FROM parkings;
 SELECT * FROM municipalities;
-SELECT * FROM fees
+SELECT * FROM fees;
 SELECT * FROM vehicles;
 SELECT * FROM parkings_sessions;
 SELECT * FROM places;
