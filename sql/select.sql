@@ -1,6 +1,6 @@
 SELECT * FROM parkings;
 SELECT * FROM municipalities;
-SELECT * FROM tariffs;
+SELECT * FROM fees
 SELECT * FROM vehicles;
 SELECT * FROM parkings_sessions;
 SELECT * FROM places;
@@ -28,7 +28,7 @@ SELECT
     t.price AS current_hourly_rate, 
     t.entry_time AS valid_from, 
     t.exit_time AS valid_until
-FROM tariffs t
+FROM fees
 JOIN parkings p ON t.id_parking = p.id_parking
 WHERE CURRENT_TIME BETWEEN t.entry_time AND t.exit_time;
 
@@ -98,7 +98,7 @@ FROM parkings_sessions s
 JOIN vehicles v ON s.id_vehicle = v.id_vehicle
 JOIN places pl ON s.id_place = pl.id_place
 JOIN parkings p ON pl.id_parking = p.id_parking
-JOIN tariffs t ON p.id_parking = t.id_parking
+JOIN feesN p.id_parking = t.id_parking
 WHERE s.exit_datetime IS NOT NULL
 AND CAST(s.entry_datetime AS TIME) BETWEEN t.entry_time AND t.exit_time;
 
@@ -127,7 +127,7 @@ SELECT
 FROM parkings_sessions s
 JOIN places pl ON s.id_place = pl.id_place
 JOIN parkings p ON pl.id_parking = p.id_parking
-JOIN tariffs t ON p.id_parking = t.id_parking
+JOIN feesN p.id_parking = t.id_parking
 WHERE s.exit_datetime IS NOT NULL
 GROUP BY p.name
 ORDER BY total_revenue DESC;
