@@ -1,34 +1,45 @@
 <?php
-// src/selects.php
-require_once __DIR__ . '/db.php';
+// ----------------------------------------
+// Connexion PostgreSQL SANS mot de passe
+// ----------------------------------------
+// Important : lancer le serveur avec :
+//   sudo -u postgres php -S localhost:8000 -t src
+//
+// Ainsi, le processus PHP tourne sous l'utilisateur système "postgres"
+// et pg_connect("dbname=parking_db") utilise l'authentification "peer".
 
-$conn = get_db();
+$conn = pg_connect("dbname=parking_db");
+if (!$conn) {
+    die("Erreur de connexion à PostgreSQL : " . pg_last_error());
+}
 
-// Chemin vers ton select.sql
+// ----------------------------------------
+// Lecture du fichier sql/select.sql
+// ----------------------------------------
 $selectFile = __DIR__ . '/../sql/select.sql';
 
-// Lire le fichier
 if (!file_exists($selectFile)) {
-    die("Fichier select.sql introuvable.");
+    die("Fichier select.sql introuvable : " . htmlspecialchars($selectFile));
 }
 
 $lines = file($selectFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 $queries = [];
 $current = "";
 
-// On reconstruit les requêtes en se basant sur le point-virgule
+// On reconstitue les requêtes complètes en se basant sur le ';'
 foreach ($lines as $line) {
     $trim = trim($line);
 
-    // Ignorer les commentaires SQL commençant par --
-    if ($trim === '' || strpos($trim, '--') === 0) {
+    // Ignorer les commentaires commençant par --
+    if ($trim === '' || str_starts_with($trim, '--')) {
         continue;
     }
 
     $current .= ' ' . $line;
 
-    // Si la ligne se termine par ; on considère que la requête est complète
+    // Si la ligne se termine par ';', la requête est complète
     if (substr(rtrim($line), -1) === ';') {
+        // On enlève le ';' final
         $queries[] = rtrim($current, ";\r\n\t ");
         $current = "";
     }
@@ -38,7 +49,7 @@ foreach ($lines as $line) {
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Résultats des requêtes SQL</title>
+    <title>Résultats des requêtes (select.sql)</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         h1, h2 { color: #333; }
@@ -52,7 +63,7 @@ foreach ($lines as $line) {
 </head>
 <body>
 
-<h1>Résultats des requêtes de <code>select.sql</code></h1>
+<h1>Résultats des requêtes définies dans <code>sql/select.sql</code></h1>
 
 <?php if (empty($queries)): ?>
     <p>Aucune requête SELECT trouvée dans le fichier.</p>
