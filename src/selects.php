@@ -8,9 +8,20 @@
 // Ainsi, le processus PHP tourne sous l'utilisateur système "postgres"
 // et pg_connect("dbname=parking_db") utilise l'authentification "peer".
 
-$conn = pg_connect("dbname=parking_db");
+require_once __DIR__ . '/config.php';
+
+// Connexion PostgreSQL using credentials from config.php
+$conn_string = sprintf(
+    "host=%s dbname=%s user=%s password=%s",
+    DB_HOST,
+    DB_NAME,
+    DB_USER,
+    DB_PASS
+);
+
+$conn = pg_connect($conn_string);
 if (!$conn) {
-    die("Erreur de connexion à PostgreSQL : " . pg_last_error());
+    die("Erreur de connexion à PostgreSQL : " . htmlspecialchars(pg_last_error()));
 }
 
 // ----------------------------------------
