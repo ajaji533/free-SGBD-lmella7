@@ -1,142 +1,73 @@
-SELECT * FROM parkings;
-SELECT * FROM municipalities;
-SELECT * FROM fees;
-SELECT * FROM vehicles;
-SELECT * FROM parkings_sessions;
-SELECT * FROM places;
-
-
 -- ============================================================
--- CONSULTATION QUERIES (Reporting & Real-time monitoring)
+-- 1. CONSULTATION
 -- ============================================================
 
--- 1. Global Overview: List all parkings with their full location details
--- Useful for: General mapping and inventory of parking assets.
+-- Informations sur les parkings (Nom, Adresse, Capacité, Commune)
 SELECT 
-    p.name AS parking_name, 
-    p.address, 
-    p.capacity, 
-    m.name AS municipality, 
-    m.postal_code
+    p.name AS nom_parking, 
+    p.address AS adresse, 
+    p.capacity AS capacite, 
+    m.name AS commune
 FROM parkings p
 JOIN municipalities m ON p.id_municipality = m.id_municipality;
 
--- 2. Pricing: Get current valid hourly rates based on the time of day
--- Useful for: Displaying the right price to customers entering now.
-SELECT 
-    p.name AS parking_name, 
-    t.price AS current_hourly_rate, 
-    t.entry_time AS valid_from, 
-    t.exit_time AS valid_until
-FROM fees
-JOIN parkings p ON t.id_parking = p.id_parking
-WHERE CURRENT_TIME BETWEEN t.entry_time AND t.exit_time;
+-- Informations sur les voitures (Toutes les voitures enregistrées)
+SELECT * FROM vehicles;
 
--- 3. Capacity Analysis: Total number of defined spots per parking
--- Useful for: Verifying that the physical spots match the declared capacity.
+-- Informations sur les places (Nombre de places physiques par parking)
 SELECT 
-    p.name AS parking_name, 
-    COUNT(pl.id_place) AS total_physical_spots
+    p.name AS nom_parking, 
+    COUNT(pl.id_place) AS nombre_places_installees
 FROM parkings p
 JOIN places pl ON p.id_parking = pl.id_parking
-GROUP BY p.id_parking, p.name;
+GROUP BY p.name;
 
--- 4. Real-Time Monitoring: List of vehicles currently parked (Active Sessions)
--- Useful for: Security patrols and current occupancy checks.
+-- Liste des voitures par parking (Actuellement garées)
 SELECT 
-    v.license_plate, 
-    v.model, 
-    p.name AS parking_name, 
-    pl.id_place AS spot_id, 
-    s.entry_datetime
+    p.name AS nom_parking, 
+    v.license_plate AS immatriculation, 
+    v.model AS modele, 
+    s.entry_datetime AS heure_entree
 FROM parkings_sessions s
-JOIN vehicles v ON s.id_vehicle = v.id_vehicle
 JOIN places pl ON s.id_place = pl.id_place
 JOIN parkings p ON pl.id_parking = p.id_parking
-WHERE s.exit_datetime IS NULL;
+JOIN vehicles v ON s.id_vehicle = v.id_vehicle
+WHERE s.exit_datetime IS NULL
+ORDER BY p.name;
 
--- 5. Availability Check: Calculate number of free spots per parking
--- Useful for: Showing "Full" or "Open" signs at the entrance.
+-- Liste des parkings par commune
 SELECT 
-    p.name AS parking_name,
-    p.capacity - COUNT(s.id_parking_session) AS free_spots
+    m.name AS commune, 
+    p.name AS nom_parking
+FROM parkings p
+JOIN municipalities m ON p.id_municipality = m.id_municipality
+ORDER BY m.name;
+
+-- Liste des parkings qui sont saturés à un jour donné (Ex: 2025-11-05)
+SELECT 
+    p.name AS nom_parking,
+    p.capacity AS capacite,
+    COUNT(DISTINCT s.id_parking_session) AS occupation_jour
+FROM parkings p
+JOIN places pl ON p.id_parking = pl.id_parking
+JOIN parkings_sessions s ON pl.id_place = s.id_place
+WHERE DATE(s.entry_datetime) = '2025-11-05'
+GROUP BY p.id_parking, p.name, p.capacity
+HAVING COUNT(DISTINCT s.id_parking_session) >= p.capacity;
+
+-- Liste des places disponibles, par parking, à un moment donné (MAINTENANT)
+SELECT 
+    p.name AS nom_parking,
+    p.capacity - COUNT(s.id_parking_session) AS places_libres
 FROM parkings p
 JOIN places pl ON p.id_parking = pl.id_parking
 LEFT JOIN parkings_sessions s ON pl.id_place = s.id_place AND s.exit_datetime IS NULL
 GROUP BY p.name, p.capacity;
 
--- ============================================================
--- STATISTICAL & ANALYTICAL QUERIES
--- ============================================================
-
--- 6. High Occupancy Alert: Parkings with significant activity
--- (Example: Parkings with more than 0 cars currently. Change 0 to 10 for real usage)
+-- Liste de voitures qui se sont garées dans deux parkings différents au cours d’une journée
 SELECT 
-    p.name AS parking_name, 
-    COUNT(s.id_parking_session) AS current_vehicles
-FROM parkings_sessions s
-JOIN places pl ON s.id_place = pl.id_place
-JOIN parkings p ON pl.id_parking = p.id_parking
-WHERE s.exit_datetime IS NULL
-GROUP BY p.name
-HAVING COUNT(s.id_parking_session) > 0; 
-
--- 7. Financial Projection: Calculate revenue and duration for completed sessions
--- Useful for: Billing generation and revenue estimation.
-SELECT 
-    v.license_plate,
-    p.name AS parking_name,
-    s.entry_datetime,
-    s.exit_datetime,
-    (s.exit_datetime - s.entry_datetime) AS duration,
-    ROUND(
-        CAST(
-            (EXTRACT(EPOCH FROM (s.exit_datetime - s.entry_datetime)) / 3600) * t.price 
-        AS NUMERIC), 2
-    ) AS billed_amount
-FROM parkings_sessions s
-JOIN vehicles v ON s.id_vehicle = v.id_vehicle
-JOIN places pl ON s.id_place = pl.id_place
-JOIN parkings p ON pl.id_parking = p.id_parking
-JOIN feesN p.id_parking = t.id_parking
-WHERE s.exit_datetime IS NOT NULL
-AND CAST(s.entry_datetime AS TIME) BETWEEN t.entry_time AND t.exit_time;
-
--- 8. Performance Metrics: Average parking duration per location
--- Useful for: Understanding turnover rates.
-SELECT 
-    p.name AS parking_name,
-    AVG(s.exit_datetime - s.entry_datetime) AS average_duration
-FROM parkings_sessions s
-JOIN places pl ON s.id_place = pl.id_place
-JOIN parkings p ON pl.id_parking = p.id_parking
-WHERE s.exit_datetime IS NOT NULL
-GROUP BY p.name;
-
--- 9. Revenue Ranking: Top performing parkings by total generated revenue
--- Useful for: Business strategy and profitability analysis.
-SELECT 
-    p.name AS parking_name,
-    SUM(
-        ROUND(
-            CAST(
-                (EXTRACT(EPOCH FROM (s.exit_datetime - s.entry_datetime)) / 3600) * t.price 
-            AS NUMERIC), 2
-        )
-    ) AS total_revenue
-FROM parkings_sessions s
-JOIN places pl ON s.id_place = pl.id_place
-JOIN parkings p ON pl.id_parking = p.id_parking
-JOIN feesN p.id_parking = t.id_parking
-WHERE s.exit_datetime IS NOT NULL
-GROUP BY p.name
-ORDER BY total_revenue DESC;
-
--- 10. User Behaviour: Vehicles that visited at least 2 DIFFERENT parkings today
--- Useful for: Analyzing traffic flow between campuses.
-SELECT 
-    v.license_plate, 
-    COUNT(DISTINCT p.id_parking) AS parkings_visited
+    v.license_plate AS immatriculation, 
+    COUNT(DISTINCT p.id_parking) AS nb_parkings_visites
 FROM parkings_sessions s
 JOIN places pl ON s.id_place = pl.id_place
 JOIN parkings p ON pl.id_parking = p.id_parking
@@ -144,3 +75,94 @@ JOIN vehicles v ON s.id_vehicle = v.id_vehicle
 WHERE DATE(s.entry_datetime) = CURRENT_DATE
 GROUP BY v.license_plate
 HAVING COUNT(DISTINCT p.id_parking) >= 2;
+
+-- Toute autre requête : Tarifs horaires actuellement en vigueur
+SELECT 
+    p.name AS nom_parking, 
+    t.price AS tarif_actuel, 
+    t.entry_time AS debut_plage, 
+    t.exit_time AS fin_plage
+FROM fees t
+JOIN parkings p ON t.id_parking = p.id_parking
+WHERE CURRENT_TIME BETWEEN t.entry_time AND t.exit_time;
+
+
+-- ============================================================
+-- 2. STATISTIQUES
+-- ============================================================
+
+-- Moyenne du nombre de places disponibles par parking (Basé sur l'occupation actuelle)
+SELECT 
+    p.name AS nom_parking,
+    AVG(p.capacity - (
+        SELECT COUNT(*) 
+        FROM parkings_sessions s2 
+        JOIN places pl2 ON s2.id_place = pl2.id_place 
+        WHERE pl2.id_parking = p.id_parking AND s2.exit_datetime IS NULL
+    )) AS moyenne_places_libres
+FROM parkings p
+GROUP BY p.id_parking, p.name;
+
+-- Durée moyenne de stationnement d’un véhicule par parking
+SELECT 
+    p.name AS nom_parking,
+    AVG(s.exit_datetime - s.entry_datetime) AS duree_moyenne
+FROM parkings_sessions s
+JOIN places pl ON s.id_place = pl.id_place
+JOIN parkings p ON pl.id_parking = p.id_parking
+WHERE s.exit_datetime IS NOT NULL
+GROUP BY p.name;
+
+-- Coût moyen du stationnement d’un véhicule par mois
+SELECT 
+    TO_CHAR(s.exit_datetime, 'YYYY-MM') AS mois,
+    AVG(
+        (EXTRACT(EPOCH FROM (s.exit_datetime - s.entry_datetime)) / 3600) * t.price
+    ) AS cout_moyen
+FROM parkings_sessions s
+JOIN places pl ON s.id_place = pl.id_place
+JOIN parkings p ON pl.id_parking = p.id_parking
+JOIN fees t ON p.id_parking = t.id_parking
+WHERE s.exit_datetime IS NOT NULL
+AND CAST(s.entry_datetime AS TIME) BETWEEN t.entry_time AND t.exit_time
+GROUP BY TO_CHAR(s.exit_datetime, 'YYYY-MM');
+
+-- Classement des parkings les moins utilisés (par nombre de sessions)
+SELECT 
+    p.name AS nom_parking,
+    COUNT(s.id_parking_session) AS total_visites
+FROM parkings p
+JOIN places pl ON p.id_parking = pl.id_parking
+LEFT JOIN parkings_sessions s ON pl.id_place = s.id_place
+GROUP BY p.name
+ORDER BY total_visites ASC;
+
+-- Classement des parkings les plus rentables par commune et par mois
+SELECT 
+    m.name AS commune,
+    TO_CHAR(s.exit_datetime, 'YYYY-MM') AS mois,
+    p.name AS nom_parking,
+    SUM(
+        (EXTRACT(EPOCH FROM (s.exit_datetime - s.entry_datetime)) / 3600) * t.price
+    ) AS chiffre_affaires
+FROM parkings_sessions s
+JOIN places pl ON s.id_place = pl.id_place
+JOIN parkings p ON pl.id_parking = p.id_parking
+JOIN municipalities m ON p.id_municipality = m.id_municipality
+JOIN fees t ON p.id_parking = t.id_parking
+WHERE s.exit_datetime IS NOT NULL
+AND CAST(s.entry_datetime AS TIME) BETWEEN t.entry_time AND t.exit_time
+GROUP BY m.name, mois, p.name
+ORDER BY chiffre_affaires DESC;
+
+-- Classement des communes les plus demandées par semaine
+SELECT 
+    m.name AS commune,
+    EXTRACT(WEEK FROM s.entry_datetime) AS numero_semaine,
+    COUNT(s.id_parking_session) AS total_visites
+FROM parkings_sessions s
+JOIN places pl ON s.id_place = pl.id_place
+JOIN parkings p ON pl.id_parking = p.id_parking
+JOIN municipalities m ON p.id_municipality = m.id_municipality
+GROUP BY m.name, numero_semaine
+ORDER BY total_visites DESC;
