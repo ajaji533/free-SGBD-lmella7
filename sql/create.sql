@@ -47,3 +47,28 @@ CREATE TABLE IF NOT EXISTS parkings_sessions (
 );
 
 
+------------------les vues----------------
+CREATE OR REPLACE VIEW fees_valid AS
+SELECT *
+FROM fees
+WHERE price > 0
+  AND entry_time < exit_time
+WITH CHECK OPTION;
+
+
+
+CREATE OR REPLACE VIEW parkings_sessions_valid AS
+SELECT *
+FROM parkings_sessions
+WHERE exit_datetime IS NULL
+   OR exit_datetime >= entry_datetime
+WITH CHECK OPTION;
+
+
+CREATE OR REPLACE VIEW vehicles_valid AS
+SELECT *
+FROM vehicles
+WHERE kilometers >= 0
+  AND date_of_circulation <= CURRENT_DATE
+WITH CHECK OPTION;
+
