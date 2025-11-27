@@ -166,3 +166,16 @@ JOIN parkings p ON pl.id_parking = p.id_parking
 JOIN municipalities m ON p.id_municipality = m.id_municipality
 GROUP BY m.name, numero_semaine
 ORDER BY total_visites DESC;
+
+-- Classement des sessions de parking les plus longues
+SELECT 
+    v.license_plate AS immatriculation,
+    p.name AS nom_parking,
+    (s.exit_datetime - s.entry_datetime) AS duree_stationnement
+FROM parkings_sessions s
+JOIN places pl ON s.id_place = pl.id_place
+JOIN parkings p ON pl.id_parking = p.id_parking
+JOIN vehicles v ON s.id_vehicle = v.id_vehicle
+WHERE s.exit_datetime IS NOT NULL
+ORDER BY duree_stationnement DESC
+LIMIT 10;

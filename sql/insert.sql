@@ -97,6 +97,7 @@ WITH models AS (
     'Subaru Impreza','Subaru Forester','Skoda Octavia','Dacia Sandero','Mini Cooper',
     'Porsche 911','Lamborghini Huracan','Ferrari F8','Alfa Romeo Giulia','Fiat 500',
     'Seat Leon','Jaguar XE','Land Rover Discovery','Mitsubishi Outlander','Suzuki Swift'
+    'M'
   ] AS arr
 ),
 states AS (SELECT ARRAY['Excellent','Very good','Good','Average','Poor'] AS arr2)
@@ -111,22 +112,25 @@ SELECT
 FROM generate_series(1,300) AS gs(g), models, states;
 
 -- Insert parking sessions
-
+-- Ensure no two sessions overlap for the same (id_parking, id_place).
+-- Strategy: generate 1..3 sessions per place, spaced by 4 days so durations (<=72h) won't overlap.
 WITH vcount AS (SELECT count(*) AS n FROM vehicles)
-INSERT INTO parkings_sessions (id_parking, id_place, id_vehicle, entry_datetime, exit_datetime)
+INSERT INTO parkings_sessions_valid (id_parking, id_place, id_vehicle, entry_datetime, exit_datetime)
 SELECT
   p.id_parking,
   p.id_place,
   (floor(random()*vcount.n)+1)::int AS id_vehicle,
-  p.entry_ts AS entry_datetime,
-  CASE WHEN random() < 0.12 THEN NULL
-       ELSE p.entry_ts + ( (floor(random()*(72*60)) + 5)::int || ' minutes')::interval
+  (p.base_entry + (s.sess_index - 1) * interval '4 days') AS entry_datetime,
+  CASE
+    WHEN (random() < 0.12 AND s.sess_index = p.max_sess) THEN NULL
+    ELSE (p.base_entry + (s.sess_index - 1) * interval '4 days') +
+         ((floor(random()*(72*60)) + 5)::int || ' minutes')::interval
   END AS exit_datetime
-FROM generate_series(1,300) gs(g),
-LATERAL (
+FROM (
   SELECT id_parking, id_place,
-    (now() - (floor(random()*365)::int || ' days')::interval - (floor(random()*86400)::int || ' seconds')::interval) AS entry_ts
+    (now() - (floor(random()*365)::int || ' days')::interval - (floor(random()*86400)::int || ' seconds')::interval) AS base_entry,
+    (floor(random()*3)::int + 1) AS max_sess
   FROM places
-  ORDER BY random() LIMIT 1
-) AS p,
-vcount;
+) AS p
+CROSS JOIN LATERAL generate_series(1, p.max_sess) AS s(sess_index)
+CROSS JOIN vcount;
