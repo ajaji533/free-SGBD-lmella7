@@ -1,174 +1,256 @@
 <?php
-// src/index.php
-require_once __DIR__ . '/config.php';
+require_once 'db.php';
 
-$conn_string = sprintf(
-    "host=%s dbname=%s user=%s password=%s",
-    DB_HOST,
-    DB_NAME,
-    DB_USER,
-    DB_PASS
-);
+$conn = db_connect();
 
-$conn = pg_connect($conn_string);
-if (!$conn) {
-    die("Erreur de connexion à PostgreSQL : " . htmlspecialchars(pg_last_error()));
+
+$selectedCity = filter_input(INPUT_GET, 'city', FILTER_VALIDATE_INT);
+$selectedType = filter_input(INPUT_GET, 'type', FILTER_SANITIZE_STRING);
+
+
+$sqlCounts = "
+    SELECT
+      (SELECT COUNT(*) FROM parkings) AS nb_parkings,
+      (SELECT COUNT(*) FROM places)   AS nb_places,
+      (SELECT COUNT(*) 
+         FROM parkings_sessions 
+        WHERE exit_datetime IS NULL)  AS nb_vehicles_now
+";
+$resCounts = pg_query($conn, $sqlCounts);
+if (!$resCounts) {
+    $counts = ['nb_parkings' => 0, 'nb_places' => 0, 'nb_vehicles_now' => 0];
+} else {
+    $counts = pg_fetch_assoc($resCounts);
+}
+
+
+$sqlCities = "
+    SELECT DISTINCT m.id_municipality, m.name
+    FROM municipalities m
+    JOIN parkings p ON p.id_municipality = m.id_municipality
+    ORDER BY m.name;
+";
+$resCities = pg_query($conn, $sqlCities);
+
+
+$sqlTypes = "
+    SELECT DISTINCT type
+    FROM parkings
+    ORDER BY type;
+";
+$resTypes = pg_query($conn, $sqlTypes);
+
+
+$conditions = [];
+$params = [];
+
+if ($selectedCity) {
+    $conditions[] = "p.id_municipality = $" . (count($params) + 1);
+    $params[] = $selectedCity;
+}
+
+if ($selectedType) {
+    $conditions[] = "p.type = $" . (count($params) + 1);
+    $params[] = $selectedType;
+}
+
+$sqlList = "
+    SELECT 
+        p.id_parking,
+        p.name,
+        p.type,
+        p.address,
+        p.capacity,
+        m.name AS city,
+        m.postal_code,
+        COUNT(ps.id_parking_session) 
+            FILTER (WHERE ps.exit_datetime IS NULL) AS occupied,
+        p.capacity 
+            - COUNT(ps.id_parking_session) 
+                FILTER (WHERE ps.exit_datetime IS NULL) AS free
+    FROM parkings p
+    JOIN municipalities m 
+        ON p.id_municipality = m.id_municipality
+    LEFT JOIN parkings_sessions ps 
+        ON p.id_parking = ps.id_parking
+        AND ps.exit_datetime IS NULL
+";
+
+if ($conditions) {
+    $sqlList .= " WHERE " . implode(" AND ", $conditions);
+}
+
+$sqlList .= "
+    GROUP BY 
+        p.id_parking, p.name, p.type, p.address, p.capacity,
+        m.name, m.postal_code
+    ORDER BY m.name, p.name;
+";
+
+if ($params) {
+    $result = pg_query_params($conn, $sqlList, $params);
+} else {
+    $result = pg_query($conn, $sqlList);
+}
+
+if (!$result) {
+    die("Erreur lors de la requête : " . pg_last_error($conn));
 }
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Gestion des Parkings - Tableau de Bord</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { background: #2c3e50; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        .section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 15px; }
-        .btn { 
-            background: #3498db; 
-            color: white; 
-            border: none; 
-            padding: 12px 15px; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            transition: background 0.3s;
-        }
-        .btn:hover { background: #2980b9; }
-        .btn-danger { background: #e74c3c; }
-        .btn-danger:hover { background: #c0392b; }
-        .btn-success { background: #27ae60; }
-        .btn-success:hover { background: #219a52; }
-        .parking-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
-        .parking-card { 
-            background: #ecf0f1; 
-            padding: 15px; 
-            border-radius: 5px; 
-            border-left: 4px solid #3498db;
-        }
-        .result-container { margin-top: 20px; }
-        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .hidden { display: none; }
-    </style>
+    <title>Parkings – Accueil</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🏢 Système de Gestion des Parkings</h1>
-            <p>Base de données : <?= DB_NAME ?></p>
-        </div>
+<div class="page">
 
-        <!-- Section Tables Principales -->
-        <div class="section">
-            <h2>📊 Tables Principales</h2>
-            <div class="button-grid">
-                <button class="btn" onclick="showTable('municipalities')">Communes</button>
-                <button class="btn" onclick="showTable('parkings')">Parkings</button>
-                <button class="btn" onclick="showTable('places')">Places</button>
-                <button class="btn" onclick="showTable('fees')">Tarifs</button>
-                <button class="btn" onclick="showTable('vehicles')">Véhicules</button>
-                <button class="btn" onclick="showTable('parkings_sessions')">Sessions</button>
+    <header class="hero">
+        <h1>Gestion des parkings</h1>
+        <p>Visualisation des parkings, des places disponibles et des véhicules garés.</p>
+
+        <nav class="nav">
+            <a href="index.php" class="nav-link nav-link-active">Parkings</a>
+            <a href="vehicle_search.php" class="nav-link">Recherche véhicule</a>
+        </nav>
+    </header>
+
+    <main class="main">
+
+        
+        <section class="dashboard">
+            <div class="card-metric">
+                <span class="metric-label">Parkings</span>
+                <span class="metric-value">
+                    <?= (int)$counts['nb_parkings'] ?>
+                </span>
             </div>
-        </div>
-
-        <!-- Section Requêtes Spécifiques -->
-        <div class="section">
-            <h2>🔍 Requêtes Spécifiques</h2>
-            <div class="button-grid">
-                <button class="btn btn-success" onclick="executeQuery('voitures_actuelles')">Voitures Actuellement Garées</button>
-                <button class="btn btn-success" onclick="executeQuery('places_disponibles')">Places Disponibles</button>
-                <button class="btn btn-success" onclick="executeQuery('parkings_satures')">Parkings Saturés</button>
-                <button class="btn btn-success" onclick="executeQuery('duree_moyenne')">Durée Moyenne</button>
-                <button class="btn btn-success" onclick="executeQuery('parkings_rentables')">Parkings les Plus Rentables</button>
-                <button class="btn btn-success" onclick="executeQuery('communes_demandees')">Communes les Plus Demandées</button>
+            <div class="card-metric">
+                <span class="metric-label">Places</span>
+                <span class="metric-value">
+                    <?= (int)$counts['nb_places'] ?>
+                </span>
             </div>
-        </div>
+            <div class="card-metric">
+                <span class="metric-label">Véhicules garés</span>
+                <span class="metric-value">
+                    <?= (int)$counts['nb_vehicles_now'] ?>
+                </span>
+            </div>
+        </section>
 
-        <!-- Section par Parking -->
-        <div class="section">
-            <h2>🚗 Informations par Parking</h2>
-            <div class="parking-list">
-                <?php
-                $parkings = pg_query($conn, "SELECT id_parking, name FROM parkings ORDER BY name");
-                while ($parking = pg_fetch_assoc($parkings)) {
-                    echo '<div class="parking-card">';
-                    echo '<h3>' . htmlspecialchars($parking['name']) . '</h3>';
-                    echo '<button class="btn" onclick="showParkingInfo(' . $parking['id_parking'] . ', \'places\')">Places</button>';
-                    echo '<button class="btn" onclick="showParkingInfo(' . $parking['id_parking'] . ', \'tarifs\')">Tarifs</button>';
-                    echo '<button class="btn" onclick="showParkingInfo(' . $parking['id_parking'] . ', \'occupation\')">Occupation</button>';
-                    echo '<button class="btn" onclick="showParkingInfo(' . $parking['id_parking'] . ', \'vehicules\')">Véhicules Actuels</button>';
-                    echo '</div>';
-                }
+        
+        <section>
+            <h2>Filtrer les parkings</h2>
+            <form method="get" class="filter-form">
+                <label>
+                    Commune
+                    <select name="city">
+                        <option value="">Toutes</option>
+                        <?php if ($resCities): ?>
+                            <?php while ($city = pg_fetch_assoc($resCities)) : ?>
+                                <option value="<?= (int)$city['id_municipality'] ?>"
+                                    <?= ($selectedCity == $city['id_municipality']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($city['name']) ?>
+                                </option>
+                            <?php endwhile; ?>
+                        <?php endif; ?>
+                    </select>
+                </label>
+
+                <label>
+                    Type
+                    <select name="type">
+                        <option value="">Tous</option>
+                        <?php if ($resTypes): ?>
+                            <?php while ($type = pg_fetch_assoc($resTypes)) : ?>
+                                <option value="<?= htmlspecialchars($type['type']) ?>"
+                                    <?= ($selectedType === $type['type']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($type['type']) ?>
+                                </option>
+                            <?php endwhile; ?>
+                        <?php endif; ?>
+                    </select>
+                </label>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-secondary">Filtrer</button>
+                    <a href="index.php" class="btn btn-link">Réinitialiser</a>
+                </div>
+            </form>
+        </section>
+
+        
+        <section>
+            <h2>Liste des parkings</h2>
+            <div class="parking-grid">
+                <?php while ($row = pg_fetch_assoc($result)) : 
+                    $capacity = (int)$row['capacity'];
+                    $occupied = (int)$row['occupied'];
+                    $free     = max(0, (int)$row['free']);
+                    $rate     = $capacity > 0 ? round($occupied * 100 / $capacity) : 0;
+
+                    
+                    $label = "Fluide";
+                    $labelClass = "tag-green";
+
+                    if ($rate >= 90) {
+                        $label = "Saturé";
+                        $labelClass = "tag-red";
+                    } elseif ($rate >= 50) {
+                        $label = "Chargé";
+                        $labelClass = "tag-orange";
+                    }
                 ?>
+                    <article class="parking-card">
+                        <div class="parking-header">
+                            <h3><?= htmlspecialchars($row['name']) ?></h3>
+                            <span class="badge">
+                                <?= htmlspecialchars($row['type']) ?>
+                            </span>
+                        </div>
+
+                        <p class="parking-city">
+                            <?= htmlspecialchars($row['city']) ?>
+                            (<?= htmlspecialchars($row['postal_code']) ?>)
+                        </p>
+
+                        <p class="parking-address">
+                            <?= htmlspecialchars($row['address']) ?>
+                        </p>
+
+                        <div class="parking-stats">
+                            <span><strong>Capacité :</strong> <?= $capacity ?></span>
+                            <span class="busy">
+                                <strong>Occupées :</strong> <?= $occupied ?>
+                            </span>
+                            <span class="free">
+                                <strong>Libres :</strong> <?= $free ?>
+                            </span>
+                        </div>
+
+                        <div class="parking-occupation">
+                            <span class="tag <?= $labelClass ?>">
+                                <?= $label ?> (<?= $rate ?>%)
+                            </span>
+                        </div>
+
+                        <a class="btn btn-primary" href="parking.php?id=<?= (int)$row['id_parking'] ?>">
+                            Voir les détails / Réserver
+                        </a>
+                    </article>
+                <?php endwhile; ?>
             </div>
-        </div>
+        </section>
 
-        <!-- Section Actions -->
-        <div class="section">
-            <h2>⚙️ Actions</h2>
-            <div class="button-grid">
-                <a href="selects.php" class="btn">Voir Toutes les Requêtes SELECT</a>
-                <button class="btn btn-danger" onclick="executeUpdate('fermer_sessions')">Fermer Sessions Ouvertes</button>
-                <button class="btn" onclick="executeUpdate('ajuster_tarifs')">Ajuster Tarifs Nuit</button>
-            </div>
-        </div>
+    </main>
 
-        <!-- Zone de résultats -->
-        <div id="result-container" class="section result-container hidden">
-            <h2 id="result-title">Résultats</h2>
-            <div id="result-content"></div>
-        </div>
-    </div>
+    <footer class="footer">
+        Projet SGBD – ENSEIRB-MATMECA – <?= date('Y') ?>
+    </footer>
 
-    <script>
-        function showTable(tableName) {
-            fetch('ajax_handler.php?action=show_table&table=' + tableName)
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById('result-title').textContent = 'Table : ' + tableName;
-                    document.getElementById('result-content').innerHTML = data;
-                    document.getElementById('result-container').classList.remove('hidden');
-                });
-        }
-
-        function executeQuery(queryType) {
-            fetch('ajax_handler.php?action=execute_query&query=' + queryType)
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById('result-title').textContent = 'Requête : ' + queryType;
-                    document.getElementById('result-content').innerHTML = data;
-                    document.getElementById('result-container').classList.remove('hidden');
-                });
-        }
-
-        function showParkingInfo(parkingId, infoType) {
-            fetch('ajax_handler.php?action=parking_info&parking_id=' + parkingId + '&info_type=' + infoType)
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById('result-title').textContent = 'Info Parking - ' + infoType;
-                    document.getElementById('result-content').innerHTML = data;
-                    document.getElementById('result-container').classList.remove('hidden');
-                });
-        }
-
-        function executeUpdate(actionType) {
-            if (confirm('Êtes-vous sûr de vouloir exécuter cette action ?')) {
-                fetch('ajax_handler.php?action=execute_update&update=' + actionType)
-                    .then(response => response.text())
-                    .then(data => {
-                        alert('Action exécutée avec succès !');
-                        document.getElementById('result-title').textContent = 'Résultat de l\'action';
-                        document.getElementById('result-content').innerHTML = data;
-                        document.getElementById('result-container').classList.remove('hidden');
-                    });
-            }
-        }
-    </script>
+</div>
 </body>
 </html>

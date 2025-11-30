@@ -1,21 +1,21 @@
 <?php
-// src/db.php
-require_once __DIR__ . '/config.php';
 
-function get_db()
-{
+
+function db_connect() {
     static $conn = null;
 
     if ($conn === null) {
-        $conn = pg_connect(
-            "host=" . DB_HOST .
-            " dbname=" . DB_NAME .
-            " user=" . DB_USER .
-            " password=" . DB_PASS
-        );
+        
+        $host = "localhost";
+        $dbname = "parking_db";
+        $user = "ajaji"; //à changer selon votre user 
+        $password = "votreMotdepasse"; 
+
+        $conn = pg_connect("host=$host dbname=$dbname user=$user password=$password");
         if (!$conn) {
-            die("Erreur de connexion à la base de données.");
+            die("Erreur de connexion à PostgreSQL : " . pg_last_error());
         }
     }
+
     return $conn;
 }

@@ -1,0 +1,458 @@
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f4f6fb;
+    color: #222;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+
+
+.hero {
+    background: #273c75;
+    color: #fff;
+    padding: 1.5rem 2rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.hero h1 {
+    margin: 0;
+    font-size: 1.9rem;
+}
+
+.hero p {
+    margin: 0.4rem 0 0;
+    opacity: 0.9;
+}
+
+
+
+.nav {
+    margin-top: 0.8rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.nav-link {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    padding-bottom: 0.15rem;
+    border-bottom: 2px solid transparent;
+}
+
+.nav-link:hover {
+    border-bottom-color: rgba(255, 255, 255, 0.6);
+}
+
+.nav-link-active {
+    border-bottom-color: #ffffff;
+    font-weight: 600;
+}
+
+
+
+.main {
+    flex: 1;
+    max-width: 1100px;
+    margin: 1.5rem auto 2rem;
+    padding: 0 1.5rem;
+}
+
+
+.dashboard {
+    display: flex;
+    gap: 1rem;
+    margin: 0.5rem 0 1.8rem;
+    flex-wrap: wrap;
+}
+
+.card-metric {
+    background: #fff;
+    border-radius: 0.9rem;
+    padding: 0.8rem 1rem;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+    min-width: 140px;
+}
+
+.metric-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: #777;
+}
+
+.metric-value {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-top: 0.3rem;
+}
+
+
+.filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
+    align-items: flex-end;
+    margin: 0.7rem 0 1.5rem;
+    background: #fff;
+    padding: 0.9rem 1rem;
+    border-radius: 0.8rem;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
+}
+
+.filter-form label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85rem;
+    color: #555;
+    min-width: 180px;
+}
+
+.filter-form select,
+.filter-form input[type="text"] {
+    margin-top: 0.25rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #ccc;
+    font-size: 0.9rem;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+
+
+.parking-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.parking-card {
+    background: #fff;
+    border-radius: 0.9rem;
+    padding: 1.2rem 1.3rem;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.parking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.parking-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.badge {
+    background: #dcdde1;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.parking-city {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.parking-address {
+    margin: 0.2rem 0 0.4rem;
+    font-size: 0.9rem;
+    color: #444;
+}
+
+.parking-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    font-size: 0.9rem;
+    margin-top: 0.3rem;
+}
+
+.parking-stats span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.parking-occupation {
+    margin-top: 0.4rem;
+}
+
+
+
+.btn {
+    display: inline-block;
+    margin-top: 0.8rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-primary {
+    background: #273c75;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: #1e2f5b;
+}
+
+.btn-secondary {
+    background: #fff;
+    color: #273c75;
+    border: 1px solid #273c75;
+    margin-bottom: 0.2rem;
+}
+
+.btn-secondary:hover {
+    background: #273c75;
+    color: #fff;
+}
+
+.btn-link {
+    background: transparent;
+    border: none;
+    color: #273c75;
+    margin-top: 0.4rem;
+    padding: 0.3rem 0.3rem;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.7rem;
+    background: #fff;
+    border-radius: 0.7rem;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
+}
+
+.table th,
+.table td {
+    padding: 0.55rem 0.8rem;
+    border-bottom: 1px solid #eef0f5;
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+.table th {
+    background: #eef1fb;
+    font-weight: 600;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+
+
+.tag {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    background: #e1f5fe;
+    color: #0277bd;
+}
+
+.tag-green {
+    background: #eafaf1;
+    color: #27ae60;
+}
+
+.tag-orange {
+    background: #fff4e5;
+    color: #e67e22;
+}
+
+.tag-red {
+    background: #fdecea;
+    color: #c0392b;
+}
+
+.free {
+    color: #2ecc71;
+}
+
+.busy {
+    color: #e74c3c;
+}
+
+.empty {
+    font-style: italic;
+    color: #666;
+    margin-top: 0.4rem;
+}
+
+
+
+.reservation-form {
+    margin-top: 0.5rem;
+    background: #fff;
+    padding: 0.9rem 1rem;
+    border-radius: 0.8rem;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
+    max-width: 480px;
+}
+
+.field-row {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0.6rem;
+    font-size: 0.9rem;
+}
+
+.field-row label {
+    margin-bottom: 0.2rem;
+    color: #444;
+}
+
+.field-row input[type="text"] {
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.5rem;
+    border: 1px solid #ccc;
+    font-size: 0.9rem;
+}
+
+.help-text {
+    font-size: 0.85rem;
+    color: #555;
+    margin-top: 0.4rem;
+}
+
+
+
+.alert {
+    border-radius: 0.7rem;
+    padding: 0.6rem 0.9rem;
+    margin: 0.8rem 0 1rem;
+    font-size: 0.9rem;
+}
+
+.alert-success {
+    background: #eafaf1;
+    color: #1e8449;
+    border: 1px solid #d4efdf;
+}
+
+.alert-error {
+    background: #fdecea;
+    color: #c0392b;
+    border: 1px solid #f5b7b1;
+}
+
+
+
+.ideas {
+    margin-top: 2rem;
+    background: #fff;
+    padding: 1rem 1.2rem;
+    border-radius: 0.9rem;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
+    font-size: 0.9rem;
+}
+
+.ideas ul {
+    margin: 0.4rem 0 0;
+    padding-left: 1.2rem;
+}
+
+
+
+.footer {
+    text-align: center;
+    padding: 0.9rem 1rem;
+    font-size: 0.85rem;
+    color: #666;
+    border-top: 1px solid #dcdde1;
+    background: #f8f9fd;
+}
+
+
+
+@media (max-width: 600px) {
+    .main {
+        padding: 0 1rem;
+    }
+
+    .hero {
+        padding: 1.2rem 1.3rem;
+    }
+
+    .dashboard {
+        flex-direction: column;
+    }
+
+    .filter-form {
+        padding: 0.8rem 0.8rem;
+    }
+
+    .reservation-form {
+        padding: 0.8rem 0.8rem;
+    }
+}
+.estimate {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #273c75;
+}
+
+.main {
+    max-width: 1400px;   
+    margin: 1.5rem auto 2rem;
+    padding: 0 1.5rem;
+}
+
+
+.parking-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+
+@media (min-width: 1300px) {
+    .parking-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
