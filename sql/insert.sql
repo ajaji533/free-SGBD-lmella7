@@ -25,7 +25,7 @@ INSERT INTO parkings (name, type, address, capacity, id_municipality) VALUES
 ('Parking Gambetta', 'Multilevel', 'Cours de l''Intendance, 33000 Bordeaux', 40, 3),
 ('Parking Cité Mondiale', 'Underground', 'Quai Richelieu, 33000 Bordeaux', 35, 4),
 ('Parking Victoire', 'Open-air', 'Place de la Victoire, 33000 Bordeaux', 25, 5),
-('Parking Palais Rohan', 'Underground', 'Place Pey Berland, 33000 Bordeaux', 20, 6),
+('Parking Palais Rohan', 'Underground', 'Place Pey Berland, 33000 Bordeaux', 4, 6),
 ('Parking Saint-Jean', 'Multilevel', 'Gare Saint-Jean, 33000 Bordeaux', 70, 7),
 ('Parking Chartrons', 'Open-air', 'Rue Notre Dame, 33000 Bordeaux', 18, 8);
 
@@ -134,3 +134,8 @@ FROM (
 ) AS p
 CROSS JOIN LATERAL generate_series(1, p.max_sess) AS s(sess_index)
 CROSS JOIN vcount;
+
+-- Insert a place session with a verification of parking availability using view
+
+
+

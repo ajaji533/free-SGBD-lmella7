@@ -156,41 +156,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if (!$reservation_error) {
-                    // Chercher une place libre dans ce parking
-                    $sqlFreePlace = "
-                        SELECT pl.id_place
-                        FROM places pl
-                        LEFT JOIN parkings_sessions ps
-                          ON pl.id_parking = ps.id_parking
-                         AND pl.id_place = ps.id_place
-                         AND ps.exit_datetime IS NULL
-                        WHERE pl.id_parking = $1
-                          AND ps.id_parking_session IS NULL
-                        ORDER BY pl.id_place
-                        LIMIT 1;
-                    ";
-                    $resFree = pg_query_params($conn, $sqlFreePlace, [$id]);
-                    if (!$resFree) {
-                        $reservation_error = "Erreur lors de la recherche de place libre.";
-                    } elseif (pg_num_rows($resFree) === 0) {
-                        $reservation_error = "Aucune place libre disponible pour ce parking.";
+                    // Démarrer transaction et verrouiller la ligne du parking
+                    $resBegin = pg_query($conn, "BEGIN");
+                    if (!$resBegin) {
+                        $reservation_error = "Erreur interne (transaction).";
                     } else {
-                        $freeRow = pg_fetch_assoc($resFree);
-                        $id_place = (int)$freeRow['id_place'];
-
-                        // Créer la session de parking avec la date d'entrée souhaitée
-                        $entry_for_sql = $entry_dt->format('Y-m-d H:i:s');
-
-                        $sqlInsertSession = "
-                           INSERT INTO parkings_sessions(id_parking, id_place, id_vehicle, entry_datetime)
-                           VALUES ($1, $2, $3, $4::timestamp);
+                        // Verrouiller la ligne du parking (FOR UPDATE) — pas de GROUP BY ici
+                        $sqlLockRow = "
+                            SELECT capacity
+                            FROM parkings
+                            WHERE id_parking = $1
+                            FOR UPDATE
                         ";
-                        $resInsSess = pg_query_params($conn, $sqlInsertSession, [$id, $id_place, $id_vehicle, $entry_for_sql]);
-                        if (!$resInsSess) {
-                            $reservation_error = "Erreur lors de la réservation de la place.";
+                        $resLockRow = pg_query_params($conn, $sqlLockRow, [$id]);
+                        if (!$resLockRow || pg_num_rows($resLockRow) === 0) {
+                            pg_query($conn, "ROLLBACK");
+                            $reservation_error = "Impossible de vérifier la disponibilité du parking.";
                         } else {
-                            $reservation_success = true;
-                            // On garde $estimated_price et $estimated_hours pour affichage
+                            $row = pg_fetch_assoc($resLockRow);
+                            $capacity = (int)$row['capacity'];
+
+                            // Compter les sessions actives séparément
+                            $sqlCount = "
+                                SELECT COUNT(*) AS occupied
+                                FROM parkings_sessions
+                                WHERE id_parking = $1
+                                  AND exit_datetime IS NULL
+                            ";
+                            $resCount = pg_query_params($conn, $sqlCount, [$id]);
+                            if (!$resCount) {
+                                pg_query($conn, "ROLLBACK");
+                                $reservation_error = "Impossible de vérifier les sessions actives.";
+                            } else {
+                                $countRow = pg_fetch_assoc($resCount);
+                                $occupied = (int)$countRow['occupied'];
+                                $freeSlots = $capacity - $occupied;
+
+                                if ($freeSlots <= 0) {
+                                    pg_query($conn, "ROLLBACK");
+                                    $reservation_error = "Ce parking est complet : aucune nouvelle session n'est autorisée.";
+                                } else {
+                                    // Chercher une place libre et insérer la session (toujours dans la transaction)
+                                    $sqlFreePlace = "
+                                        SELECT pl.id_place
+                                        FROM places pl
+                                        LEFT JOIN parkings_sessions ps
+                                          ON pl.id_parking = ps.id_parking
+                                         AND pl.id_place = ps.id_place
+                                         AND ps.exit_datetime IS NULL
+                                        WHERE pl.id_parking = $1
+                                          AND ps.id_parking_session IS NULL
+                                        ORDER BY pl.id_place
+                                        LIMIT 1;
+                                    ";
+                                    $resFree = pg_query_params($conn, $sqlFreePlace, [$id]);
+                                    if (!$resFree || pg_num_rows($resFree) === 0) {
+                                        pg_query($conn, "ROLLBACK");
+                                        $reservation_error = "Aucune place libre disponible pour ce parking.";
+                                    } else {
+                                        $freeRow = pg_fetch_assoc($resFree);
+                                        $id_place = (int)$freeRow['id_place'];
+                                        $entry_for_sql = $entry_dt->format('Y-m-d H:i:s');
+
+                                        $sqlInsertSession = "
+                                           INSERT INTO parkings_sessions(id_parking, id_place, id_vehicle, entry_datetime)
+                                           VALUES ($1, $2, $3, $4::timestamp)
+                                           RETURNING id_parking_session;
+                                        ";
+                                        $resInsSess = pg_query_params($conn, $sqlInsertSession, [$id, $id_place, $id_vehicle, $entry_for_sql]);
+                                        if (!$resInsSess) {
+                                            pg_query($conn, "ROLLBACK");
+                                            $reservation_error = "Erreur lors de la réservation de la place.";
+                                        } else {
+                                            pg_query($conn, "COMMIT");
+                                            $reservation_success = true;
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

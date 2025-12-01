@@ -72,3 +72,16 @@ WHERE kilometers >= 0
   AND date_of_circulation <= CURRENT_DATE
 WITH CHECK OPTION;
 
+
+CREATE OR REPLACE VIEW parkings_available AS
+SELECT p.*
+FROM parkings p
+WHERE p.capacity >
+    (
+      SELECT COUNT(*)
+      FROM parkings_sessions ps
+      WHERE ps.id_parking = p.id_parking
+        AND ps.exit_datetime IS NULL
+    )
+WITH CHECK OPTION;
+
