@@ -456,3 +456,13 @@ a {
         grid-template-columns: repeat(4, 1fr);
     }
 }
+
+.hero-home {
+    
+    background-image:
+        linear-gradient(rgba(39, 60, 117, 0.9), rgba(39, 60, 117, 0.9)),
+        url("img/parking.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}

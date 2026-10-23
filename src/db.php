@@ -8,8 +8,8 @@ function db_connect() {
         
         $host = "localhost";
         $dbname = "parking_db";
-        $user = "ajaji"; //à changer selon votre user 
-        $password = "votreMotdepasse"; 
+        $user = "votre_utilisateur";  
+        $password = "votre_mot_de_passe"; 
 
         $conn = pg_connect("host=$host dbname=$dbname user=$user password=$password");
         if (!$conn) {

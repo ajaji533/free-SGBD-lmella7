@@ -107,7 +107,7 @@ if (!$result) {
 <body>
 <div class="page">
 
-    <header class="hero">
+    <header class="hero hero-home">
         <h1>Gestion des parkings</h1>
         <p>Visualisation des parkings, des places disponibles et des véhicules garés.</p>
 

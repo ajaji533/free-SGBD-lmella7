@@ -1,9 +1,3 @@
--- =========================================
--- update.sql  (PostgreSQL)
--- Base : parking_db
--- Schéma : municipalities, parkings, places,
---          fees, vehicles, parkings_sessions
--- =========================================
 
 -- 1) Corriger / modifier un code postal
 --    Exemple : mettre à jour le code postal de "Begles"
@@ -41,7 +35,7 @@ WHERE id_parking IN (
 );
 
 -- 7) Augmenter de 0.50€ tous les tarifs de nuit
---    (ici on considère la nuit comme les créneaux qui commencent avant 06:00 ou après 22:00)
+
 UPDATE fees
 SET price = price + 0.50
 WHERE entry_time < TIME '06:00'
